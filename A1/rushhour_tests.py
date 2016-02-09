@@ -52,9 +52,9 @@ if __name__ == '__main__':
               ['3', (4, 4), 2, False, False]], (4, 1), 'E')
 
     print('''Now testing your make_init_state:
-               s = make_init_state((7,7), [['gv', (0, 0), 2, True, True],
-                   ['1', (2, 0), 2, False, False],
-                   ['3', (3, 3), 2, False, False]], (3, 0), 'E')''')
+               s = make_init_state((7, 7), [['gv', (1, 1), 2, True, True],
+              ['1', (3, 1), 2, False, False],
+              ['3', (4, 4), 2, False, False]], (4, 1), 'E')''')
 
     #compare get_vehicle_statuses() list with master list
     s_vs = s.get_vehicle_statuses()

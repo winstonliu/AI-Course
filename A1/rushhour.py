@@ -8,6 +8,7 @@ rushhour STATESPACE
 #   available on CDF.
 #   You may not remove any imports.
 #   You may not import or otherwise source any of your own files
+import copy
 
 from search import *
 from random import randint
@@ -19,7 +20,7 @@ from random import randint
 
 
 class rushhour(StateSpace):
-    def __init__(self, action, gval, statevar):
+    def __init__(self, action, gval, statevar, parent = None):
         """Initialize a rushhour search state object."""
         StateSpace.__init__(self, action, gval, parent)
         self.statevar = statevar
@@ -34,16 +35,16 @@ class rushhour(StateSpace):
             vloc_x = veh["location"][0]
             vloc_y = veh["location"][1]
             vlen = veh["length"]
-            n = self.statevar["bs"][0]
-            m = self.statevar["bs"][1]
+            m = self.statevar["board_size"][0]
+            n = self.statevar["board_size"][1]
 
-            if veh["is_horizontal"] == True:
+            if veh["is_horizontal"]:
                 vneg = ((vloc_x-1) % n, vloc_y)
                 vpos = ((vloc_x+vlen) % n, vloc_y)
 
                 ### MOVE WEST
                 if vneg in self.statevar["blank_spaces"]:
-                    nxt_state = self.statevar
+                    nxt_state = copy.deepcopy(self.statevar)
                     nxt_state["myVehicles"][vidx]["location"] = vneg # make changes
                     ## change occupado status
                     nxt_state["blank_spaces"].remove(vneg)
@@ -53,9 +54,11 @@ class rushhour(StateSpace):
                     ### Add to list
                     successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state))
 
+                nxt_state = []
+
                 ### MOVE EAST
                 if vpos in self.statevar["blank_spaces"]:
-                    nxt_state = self.statevar
+                    nxt_state = copy.deepcopy(self.statevar)
                     # make changes
                     nxt_state["myVehicles"][vidx]["location"] = ((vloc_x+1) % n, vloc_y) 
                     ## change occupado status
@@ -71,19 +74,21 @@ class rushhour(StateSpace):
 
                 ### MOVE NORTH
                 if vneg in self.statevar["blank_spaces"]:
-                    nxt_state = self.statevar
+                    nxt_state = copy.deepcopy(self.statevar)
                     nxt_state["myVehicles"][vidx]["location"] = vneg # make changes
                     ## change occupado status
-                    nxt_state["blank_spaces"].remove(vnegkj
+                    nxt_state["blank_spaces"].remove(vneg)
                     freed_space = (vloc_x, (vloc_y-1+vlen) % m)
                     nxt_state["blank_spaces"].append(freed_space)
 
                     ### Add to list
                     successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state))
 
+                nxt_state = []
+
                 ### MOVE SOUTH
                 if vpos in self.statevar["blank_spaces"]:
-                    nxt_state = self.statevar
+                    nxt_state = copy.deepcopy(self.statevar)
                     # make changes
                     nxt_state["myVehicles"][vidx]["location"] = (vloc_x, (vloc_y+1) % m) 
                     ## change occupado status
@@ -92,7 +97,13 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].append(freed_space)
 
                     ### Add to list
-                    successor_states.append(rushhour('move_vehicle({},S)'.format(veh["name"]), self.gval+1, nxt_state))
+                    successor_states.append(rushhour('move_vehicle({},S)'.format(veh["name"]), self.gval+1, nxt_state, self))
+        
+       #for ss in successor_states:
+       #    print("----------")
+       #    for bl in ss.statevar["board"]:
+       #        print("{}".format(''.join(bl)))
+       #print("##########")
 
         return successor_states
 
@@ -150,7 +161,7 @@ class rushhour(StateSpace):
         '''
         # Convert dicts back into list
         out_list = list()
-        for veh in self.string["myVehicles"]:
+        for veh in self.statevar["myVehicles"]:
            out_list.append(
                    [
                         veh["name"],
@@ -186,7 +197,6 @@ def heur_zero(state):
 
 
 def heur_min_moves(state):
-#IMPLEMENT
     '''rushhour heuristic'''
     #We want an admissible heuristic. Getting to the goal requires
     #one move for each tile of distance.
@@ -203,34 +213,51 @@ def heur_min_moves(state):
     #You should implement this heuristic function exactly, even if it is
     #tempting to improve it.
 
+    m = state.statevar["board_size"][0]
+    n = state.statevar["board_size"][1]
+
+    ## Isolate goal vehicles
+    moves = [9999]
+    for veh in state.statevar["myVehicles"]:
+        if veh["goal_square"] == -1:
+            continue
+        
+        move1 = 9999
+        move2 = 9999
+
+        if veh["is_horizontal"]:
+            gsy = veh["goal_square"][0]
+            vly = veh["location"][0]
+
+            if vly > gsy:
+                move1 = vly - gsy
+                move2 = (gsy+n) - vly
+            else:
+                move1 = gsy - vly
+                move2 = vly - (gsy-n)
+        else:
+            gsx = veh["goal_square"][1]
+            vlx = veh["location"][1]
+
+            if vlx > gsx:
+                move1 = vlx - gsx
+                move2 = (gsx+m) - vlx
+            else:
+                move1 = gsx - vlx
+                move2 = vlx - (gsx-m)
+        
+        moves.append(min(move1,move2))
+    return min(moves)
 
 def rushhour_goal_fn(state):
     '''Have we reached a goal state'''
-    ge_x = state.statevar["goal_entrance"][0]
-    ge_y = state.statevar["goal_entrance"][1]
-    n = state.statevar["bs"][0]
-    m = state.statevar["bs"][1]
-
-    goal_direction = state.statevar["goal_direction"]
-
     ## Isolate goal vehicles
-    for veh in state.statevar["myVehicles"]
-        if not veh["is_goal"]:
+    for veh in state.statevar["myVehicles"]:
+        if veh["goal_square"] == -1:
             continue
-        vlen = veh["length"]
-
-        if goal_direction == 'S': # South facing goals
-            goal_square = (ge_x, (ge_y-vlen+1) % m)
-        elif goal_direction == 'E': # East facing goals
-            goal_square = ((ge_x-vlen+1) % n, ge_y)
-        else # North and West facing goals
-            goal_square = (ge_x, ge_y)
-
-        if veh["location"] == goal_square:
+        elif veh["location"] == veh["goal_square"]:
             return True
-
     return False
-
 
 def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
     '''Input the following items which specify a state and return a rushhour object
@@ -260,33 +287,62 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
     # Need way to identify empty spaces, use matrix; tailored for sparse empty spaces
 
     ### Identify empty spaces on board
-    board = get_board(vehicle_list, board_size)
+    board = get_board(vehicle_list, [board_size, goal_entrance, goal_direction])
 
     blank_spaces = list()
-    rows_with_blanks = [j for j, sublist in enumerate(board) if "." in sublist]
-    for k, r in enumerate(rows_with_blanks): # k is index of row 
-        # Append coordinates (x,y)
-        blank_spaces.append([(i, k) for i, p in enumerate(r) if p == "."])
+    for r,row_w_blank in enumerate(board):
+        if "." in row_w_blank:
+            for k,cell in enumerate(row_w_blank):
+                if cell == ".":
+                    blank_spaces.append((k,r))
+
+    ge_x = goal_entrance[0]
+    ge_y = goal_entrance[1]
+    m = board_size[0]
+    n = board_size[1]
 
     ### Use own vehicle objects (list of dictionaries)
     myVehicles = list()
     for vehicle in vehicle_list:
-        myVehicles.append(
-                    {
-                        "name": vehicle[0],
-                        "location": vehicle[1],
-                        "length": vehicle[2],
-                        "is_horizontal": vehicle[3],
-                        "is_goal": vehicle[4]
-                    })
+        goal_square = -1 # Initialize
+
+        v_dic = {
+                    "name": vehicle[0],
+                    "location": vehicle[1],
+                    "length": vehicle[2],
+                    "is_horizontal": vehicle[3],
+                    "is_goal": vehicle[4],
+            }
+                    
+        vlen = v_dic["length"]
+        if v_dic["is_goal"]:
+            # Vehicle is horz, goal is horz, goal row == vehicle row
+            if v_dic["is_horizontal"] and goal_direction in ['W','E'] and ge_x == v_dic["location"][0]:
+                if goal_direction == 'E': # East facing goals
+                    goal_square = ((ge_x-vlen+1) % n, ge_y)
+                else:
+                    goal_square = (ge_x, ge_y)
+            # Vehicle is vert, goal is vert, goal col == vehicle col
+            elif goal_direction in ['N','S'] and ge_y == v_dic["location"][1]: 
+                if goal_direction == 'S': # South facing goals
+                    goal_square = (ge_x, (ge_y-vlen+1) % m) 
+                else: # North facing goals
+                    goal_square = (ge_x, ge_y)
+
+        v_dic["goal_square"] = goal_square
+        myVehicles.append(v_dic)
     
     statevar = {
-                "bs": board_size, 
-                "myVehicles": myVehicles, 
-                "goal_entrance": goal_entrance, 
-                "goal_direction": goal_direction,
-                "blank_spaces": blank_spaces
-            }
+            "board" : board, 
+            "board_size": board_size, 
+            "myVehicles": myVehicles, 
+            "goal_entrance": goal_entrance, 
+            "goal_direction": goal_direction,
+            "blank_spaces": blank_spaces
+        }
+
+    for bl in board:
+        print("{}".format(''.join(bl)))
 
     return rushhour("START", 0, statevar)
 
