@@ -53,7 +53,7 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].sort()
 
                     ### Add to list
-                    successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state))
+                    successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state, self))
 
                 nxt_state = []
 
@@ -69,7 +69,7 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].sort()
 
                     ### Add to list
-                    successor_states.append(rushhour('move_vehicle({},E)'.format(veh["name"]), self.gval+1, nxt_state))
+                    successor_states.append(rushhour('move_vehicle({},E)'.format(veh["name"]), self.gval+1, nxt_state, self))
 
                 ### SELF-BLOCKING
                 if veh["length"] == n:
@@ -82,8 +82,8 @@ class rushhour(StateSpace):
                     nxt_state_W["blank_spaces"].sort()
 
                     ### Add to list
-                    successor_states.append(rushhour('move_vehicle({},E)'.format(veh["name"]), self.gval+1, nxt_state_E))
-                    successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state_W))
+                    successor_states.append(rushhour('move_vehicle({},E)'.format(veh["name"]), self.gval+1, nxt_state_E, self))
+                    successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state_W, self))
             else:
                 vneg = (vloc_x, (vloc_y-1) % m)
                 vpos = (vloc_x, (vloc_y+vlen) % m)
@@ -99,7 +99,7 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].sort()
 
                     ### Add to list
-                    successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state))
+                    successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state, self))
 
                 nxt_state = []
 
@@ -128,22 +128,23 @@ class rushhour(StateSpace):
                     nxt_state_S["blank_spaces"].sort()
 
                     ### Add to list
-                    successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state_N))
-                    successor_states.append(rushhour('move_vehicle({},S)'.format(veh["name"]), self.gval+1, nxt_state_S))
-        
+                    successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state_N, self))
+                    successor_states.append(rushhour('move_vehicle({},S)'.format(veh["name"]), self.gval+1, nxt_state_S, self))
+
+        #>>> TODO REMOVE
+       #debug("\n\n") 
+       #debug("#### START SS ####")
        #for ss in successor_states:
-       #    print("----------")
-       #    board = get_board(ss.get_vehicle_statuses(), ss.get_board_properties())
-       #    for bl in board:
-       #        print("{}".format(''.join(bl)))
-       #print("##########")
+       #    debug("Blanks: {}".format(ss.statevar["blank_spaces"]))
+       #    ss.print_state()
+       #debug("#### END SS ####")
 
         return successor_states
 
     def hashable_state(self):
         '''Return a data item that can be used as a dictionary key to UNIQUELY represent the state.'''
         myhash = self.make_hash(self.statevar)
-        # print("HASH: {}\n".format(myhash))
+        # debug("HASH: {}\n".format(myhash))
         return myhash
 
     def make_hash(self, nested_obj):
@@ -157,7 +158,7 @@ class rushhour(StateSpace):
             new_obj[k] = self.make_hash(v)
 
         return hash(tuple(frozenset(sorted(new_obj.items()))))
-
+    
     def print_state(self):
         #DO NOT CHANGE THIS FUNCTION---it will be used in auto marking
         #and in generating sample trace output.
@@ -319,26 +320,12 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
          (b) all locations are integer pairs (x,y) where 0<=x<=n-1 and 0<=y<=m-1
          (c) vehicle lengths are positive integers
     '''
-    # Need way to identify empty spaces, use matrix; tailored for sparse empty spaces
-
-    ### Identify empty spaces on board
-    board = get_board(vehicle_list, [board_size, goal_entrance, goal_direction])
-
-    blank_spaces = list()
-    for r,row_w_blank in enumerate(board):
-        if "." in row_w_blank:
-            for k,cell in enumerate(row_w_blank):
-                if cell == ".":
-                    blank_spaces.append((k,r))
-
-    # Sort so hashing won't get messed up
-    blank_spaces.sort()
-
     ge_x = goal_entrance[0]
     ge_y = goal_entrance[1]
     m = board_size[0]
     n = board_size[1]
 
+    occupied_spaces = list() # get all occupied spaces on the board
     ### Use own vehicle objects (list of dictionaries)
     myVehicles = list()
     for vehicle in vehicle_list:
@@ -351,25 +338,58 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
                     "is_horizontal": vehicle[3],
                     "is_goal": vehicle[4],
             }
-                    
+
         vlen = v_dic["length"]
+        vlx = v_dic["location"][0]
+        vly = v_dic["location"][1]
+
+        ## Fill in occupied spaces
+        if v_dic["is_horizontal"]:
+            for p in range(v_dic["length"]):
+                occupied_spaces.append(((vlx+p) % n, vly))
+        else:
+            for p in range(v_dic["length"]):
+                occupied_spaces.append((vlx, (vly+p) % m))
+
         if v_dic["is_goal"]:
             # Vehicle is horz, goal is horz, goal row == vehicle row
-            if v_dic["is_horizontal"] and goal_direction in ['W','E'] and ge_y == v_dic["location"][1]:
+            if v_dic["is_horizontal"] == True and (goal_direction in ['W','E']) and ge_y == vly:
                 if goal_direction == 'E': # East facing goals
                     goal_square = ((ge_x-vlen+1) % n, ge_y)
-                else:
+                elif goal_direction == 'W':
                     goal_square = (ge_x, ge_y)
             # Vehicle is vert, goal is vert, goal col == vehicle col
-            elif goal_direction in ['N','S'] and ge_x == v_dic["location"][0]: 
+            elif v_dic["is_horizontal"] == False and (goal_direction in ['N','S']) and ge_x == vlx: 
                 if goal_direction == 'S': # South facing goals
                     goal_square = (ge_x, (ge_y-vlen+1) % m) 
-                else: # North facing goals
+                elif goal_direction == 'N': # North facing goals
                     goal_square = (ge_x, ge_y)
+
+        #>>> TODO >>> REMOVE
+        debug("{}: properties = {}, IS_HORZ = {}".format(v_dic["name"], v_dic["location"], v_dic["is_horizontal"])) 
+        if v_dic["is_goal"]:
+            debug("{}: goal state = {}".format(v_dic["name"], goal_square)) 
+        #>>> TODO >>> /REMOVE
 
         v_dic["goal_square"] = goal_square
         myVehicles.append(v_dic)
+
+    occupied_spaces.sort()
+    #>>> TODO >>> REMOVE
+    #debug("Occupied: {}".format(occupied_spaces))
     
+    ### Find Blank spaces
+    board = get_board(vehicle_list, [board_size, goal_entrance, goal_direction])
+    blank_spaces = list()
+    for r,rows in enumerate(board):
+        for k,cell in enumerate(rows):
+                if not (k,r) in occupied_spaces:
+                    blank_spaces.append((k,r))
+
+    # Sort so hashing won't get messed up
+    blank_spaces.sort()
+    debug("Blank: {}".format(blank_spaces))
+
     statevar = {
             "board_size": board_size, 
             "myVehicles": myVehicles, 
@@ -378,8 +398,8 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
             "blank_spaces": blank_spaces
         }
 
-   #for bl in board:
-   #    print("{}".format(''.join(bl)))
+    #>>> TODO >>> REMOVE
+    debug('\n'.join([''.join(board[i]) for i in range(len(board))]))
 
     return rushhour("START", 0, statevar)
 
@@ -388,6 +408,8 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
 #   Test your implementation                           #
 ########################################################
 
+def debug(in):
+    print(in)
 
 def get_board(vehicle_statuses, board_properties):
     #DO NOT CHANGE THIS FUNCTION---it will be used in auto marking

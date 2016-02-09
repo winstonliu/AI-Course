@@ -310,16 +310,16 @@ if __name__ == '__main__':
                      ['3', (4, 4), 2, False, False]],
 
                     [['gv', (3, 2), 2, True, True],
-                     ['car1', (0, 0), 2, False, False],
-                     ['car2', (1, 0), 3, True, False],
-                     ['car3', (2, 1), 3, False, False],
-                     ['car4', (0, 3), 2, True, False]],
+                     ['1', (0, 0), 2, False, False],
+                     ['2', (1, 0), 3, True, False],
+                     ['3', (2, 1), 3, False, False],
+                     ['4', (0, 3), 2, True, False]],
 
                     [['gv', (3, 2), 2, True, True],
-                     ['car1', (0, 0), 3, False, False],
-                     ['car2', (1, 0), 3, True, False],
-                     ['car3', (2, 1), 3, False, False],
-                     ['car4', (0, 3), 2, True, False]],
+                     ['1', (0, 0), 3, False, False],
+                     ['2', (1, 0), 3, True, False],
+                     ['3', (2, 1), 3, False, False],
+                     ['4', (0, 3), 2, True, False]],
 
                     [['gv', (3, 1), 3, True, True]],
                     
@@ -360,7 +360,7 @@ if __name__ == '__main__':
     goal_pos = [(4,1), (2,2), (2,2), (3, 3), (3, 3), (4, 2), (1, 1), (1, 1), (6,1)]
     goal_ori = ['E', 'W', 'W', 'S', 'S', 'E', 'N', 'N', 'E']
     min_sol = [3, 0, 8, 0, 0, 0, 5, 20, 9]
-    child = [5, 4, 2, 2, 2, 2, 5, 6, 7]
+    child = [5, 4, 2, 2, 2, 2, 7, 8, 7]
     heur = [2, 1, 1, float("inf"), 0, float("inf"), 2, 2, 3]
 
     for x in range(len(board)):
@@ -395,6 +395,7 @@ if __name__ == '__main__':
             print("The correct number is {}. Your function returned {}.".format(heur[x], heur_min_moves(s)))
             
         se = SearchEngine('astar', 'full')
+        print("Now running astar search.")
         final = se.search(s, rushhour_goal_fn, heur_min_moves)
 
         if (x == 1 or x == 3 or x == 5):
@@ -424,9 +425,8 @@ if __name__ == '__main__':
         
         s = make_init_state(board[x], vehicle_list[x], goal_pos[x], goal_ori[x])
         se = SearchEngine('breadth_first', 'full')
+        print("Now running breadth first search.")
         final = se.search(s, rushhour_goal_fn, heur_min_moves)
-
-        
 
         if (x == 1 or x == 3 or x == 5):
             if(final):
@@ -452,6 +452,7 @@ if __name__ == '__main__':
 
         s = make_init_state(board[x], vehicle_list[x], goal_pos[x], goal_ori[x])
         se = SearchEngine('best_first', 'full')
+        print("Now running best first search.")
         final = se.search(s, rushhour_goal_fn, heur_min_moves)
 
         if (x == 1 or x == 3 or x == 5):
@@ -479,6 +480,7 @@ if __name__ == '__main__':
 
         s = make_init_state(board[x], vehicle_list[x], goal_pos[x], goal_ori[x])
         se = SearchEngine('depth_first', 'full')
+        print("Now running depth_first search.")
         final = se.search(s, rushhour_goal_fn, heur_min_moves)
 
         if (x == 1 or x == 3 or x == 5):
