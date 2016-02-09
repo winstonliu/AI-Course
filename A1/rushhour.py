@@ -1,4 +1,4 @@
-#Look for #IMPLEMENT tags in this file. These tags indicate what has
+#Lnook for #IMPLEMENT tags in this file. These tags indicate what has
 #to be implemented to complete the warehouse domain.
 
 '''
@@ -50,6 +50,7 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].remove(vneg)
                     freed_space = ((vloc_x-1+vlen) % n, vloc_y)
                     nxt_state["blank_spaces"].append(freed_space)
+                    nxt_state["blank_spaces"].sort()
 
                     ### Add to list
                     successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state))
@@ -65,9 +66,24 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].remove(vpos)
                     freed_space = (vloc_x, vloc_y)
                     nxt_state["blank_spaces"].append(freed_space)
+                    nxt_state["blank_spaces"].sort()
 
                     ### Add to list
                     successor_states.append(rushhour('move_vehicle({},E)'.format(veh["name"]), self.gval+1, nxt_state))
+
+                ### SELF-BLOCKING
+                if veh["length"] == n:
+                    nxt_state_E = copy.deepcopy(self.statevar)
+                    nxt_state_W = copy.deepcopy(self.statevar)
+                    # make changes
+                    nxt_state_E["myVehicles"][vidx]["location"] = ((vloc_x+1) % n, vloc_y) 
+                    nxt_state_W["myVehicles"][vidx]["location"] = vneg
+                    nxt_state_E["blank_spaces"].sort()
+                    nxt_state_W["blank_spaces"].sort()
+
+                    ### Add to list
+                    successor_states.append(rushhour('move_vehicle({},E)'.format(veh["name"]), self.gval+1, nxt_state_E))
+                    successor_states.append(rushhour('move_vehicle({},W)'.format(veh["name"]), self.gval+1, nxt_state_W))
             else:
                 vneg = (vloc_x, (vloc_y-1) % m)
                 vpos = (vloc_x, (vloc_y+vlen) % m)
@@ -80,6 +96,7 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].remove(vneg)
                     freed_space = (vloc_x, (vloc_y-1+vlen) % m)
                     nxt_state["blank_spaces"].append(freed_space)
+                    nxt_state["blank_spaces"].sort()
 
                     ### Add to list
                     successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state))
@@ -95,13 +112,29 @@ class rushhour(StateSpace):
                     nxt_state["blank_spaces"].remove(vpos)
                     freed_space = (vloc_x, vloc_y)
                     nxt_state["blank_spaces"].append(freed_space)
+                    nxt_state["blank_spaces"].sort()
 
                     ### Add to list
                     successor_states.append(rushhour('move_vehicle({},S)'.format(veh["name"]), self.gval+1, nxt_state, self))
+
+                ### SELF-BLOCKING
+                if veh["length"] == n:
+                    nxt_state_N = copy.deepcopy(self.statevar)
+                    nxt_state_S = copy.deepcopy(self.statevar)
+                    # make changes
+                    nxt_state_N["myVehicles"][vidx]["location"] = vneg # make changes
+                    nxt_state_S["myVehicles"][vidx]["location"] = (vloc_x, (vloc_y+1) % m) 
+                    nxt_state_N["blank_spaces"].sort()
+                    nxt_state_S["blank_spaces"].sort()
+
+                    ### Add to list
+                    successor_states.append(rushhour('move_vehicle({},N)'.format(veh["name"]), self.gval+1, nxt_state_N))
+                    successor_states.append(rushhour('move_vehicle({},S)'.format(veh["name"]), self.gval+1, nxt_state_S))
         
        #for ss in successor_states:
        #    print("----------")
-       #    for bl in ss.statevar["board"]:
+       #    board = get_board(ss.get_vehicle_statuses(), ss.get_board_properties())
+       #    for bl in board:
        #        print("{}".format(''.join(bl)))
        #print("##########")
 
@@ -109,17 +142,19 @@ class rushhour(StateSpace):
 
     def hashable_state(self):
         '''Return a data item that can be used as a dictionary key to UNIQUELY represent the state.'''
-        return make_hash(self.statevar)
+        myhash = self.make_hash(self.statevar)
+        # print("HASH: {}\n".format(myhash))
+        return myhash
 
     def make_hash(self, nested_obj):
         if isinstance(nested_obj, (set, tuple, list)):
-            return tuple([make_hash(e) for e in nested_obj])
+            return tuple([self.make_hash(e) for e in nested_obj])
         elif not isinstance(nested_obj, (dict)):
             return hash(nested_obj)
 
-        new_obj = copy.deepcopy(new_obj)
+        new_obj = copy.deepcopy(nested_obj)
         for k, v in new_obj.items():
-            new_obj[k] = make_hash[v]
+            new_obj[k] = self.make_hash(v)
 
         return hash(tuple(frozenset(sorted(new_obj.items()))))
 
@@ -217,13 +252,13 @@ def heur_min_moves(state):
     n = state.statevar["board_size"][1]
 
     ## Isolate goal vehicles
-    moves = [9999]
+    moves = [float('inf')]
     for veh in state.statevar["myVehicles"]:
         if veh["goal_square"] == -1:
             continue
         
-        move1 = 9999
-        move2 = 9999
+        move1 = float('inf')
+        move2 = float('inf')
 
         if veh["is_horizontal"]:
             gsy = veh["goal_square"][0]
@@ -296,6 +331,9 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
                 if cell == ".":
                     blank_spaces.append((k,r))
 
+    # Sort so hashing won't get messed up
+    blank_spaces.sort()
+
     ge_x = goal_entrance[0]
     ge_y = goal_entrance[1]
     m = board_size[0]
@@ -317,13 +355,13 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
         vlen = v_dic["length"]
         if v_dic["is_goal"]:
             # Vehicle is horz, goal is horz, goal row == vehicle row
-            if v_dic["is_horizontal"] and goal_direction in ['W','E'] and ge_x == v_dic["location"][0]:
+            if v_dic["is_horizontal"] and goal_direction in ['W','E'] and ge_y == v_dic["location"][1]:
                 if goal_direction == 'E': # East facing goals
                     goal_square = ((ge_x-vlen+1) % n, ge_y)
                 else:
                     goal_square = (ge_x, ge_y)
             # Vehicle is vert, goal is vert, goal col == vehicle col
-            elif goal_direction in ['N','S'] and ge_y == v_dic["location"][1]: 
+            elif goal_direction in ['N','S'] and ge_x == v_dic["location"][0]: 
                 if goal_direction == 'S': # South facing goals
                     goal_square = (ge_x, (ge_y-vlen+1) % m) 
                 else: # North facing goals
@@ -333,7 +371,6 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
         myVehicles.append(v_dic)
     
     statevar = {
-            "board" : board, 
             "board_size": board_size, 
             "myVehicles": myVehicles, 
             "goal_entrance": goal_entrance, 
@@ -341,8 +378,8 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
             "blank_spaces": blank_spaces
         }
 
-    for bl in board:
-        print("{}".format(''.join(bl)))
+   #for bl in board:
+   #    print("{}".format(''.join(bl)))
 
     return rushhour("START", 0, statevar)
 
