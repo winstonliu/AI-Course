@@ -408,8 +408,8 @@ def make_init_state(board_size, vehicle_list, goal_entrance, goal_direction):
 #   Test your implementation                           #
 ########################################################
 
-def debug(in):
-    print(in)
+def debug(myin):
+    print(myin)
 
 def get_board(vehicle_statuses, board_properties):
     #DO NOT CHANGE THIS FUNCTION---it will be used in auto marking
