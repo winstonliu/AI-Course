@@ -1,0 +1,24 @@
+GAC
+CSP Futoshiki-M1 solved. CPU Time used = 0.005382660999999997
+CSP Futoshiki-M1  Assignments = 
+Var--V0,0  =  3     Var--V0,1  =  2     Var--V0,2  =  1     Var--V0,3  =  4     Var--V1,0  =  1     Var--V1,1  =  3     Var--V1,2  =  4     Var--V1,3  =  2     Var--V2,0  =  4     Var--V2,1  =  1     Var--V2,2  =  2     Var--V2,3  =  3     Var--V3,0  =  2     Var--V3,1  =  4     Var--V3,2  =  3     Var--V3,3  =  1     
+bt_search finished
+Search made 16 variable assignments and pruned 37 variable values
+Solution
+[3, 2, 1, 4]
+[1, 3, 4, 2]
+[4, 1, 2, 3]
+[2, 4, 3, 1]
+===========
+GAC
+CSP Futoshiki-M2 solved. CPU Time used = 0.004332560999999999
+CSP Futoshiki-M2  Assignments = 
+Var--V0,0  =  3     Var--V0,1  =  2     Var--V0,2  =  1     Var--V0,3  =  4     Var--V1,0  =  1     Var--V1,1  =  3     Var--V1,2  =  4     Var--V1,3  =  2     Var--V2,0  =  4     Var--V2,1  =  1     Var--V2,2  =  2     Var--V2,3  =  3     Var--V3,0  =  2     Var--V3,1  =  4     Var--V3,2  =  3     Var--V3,3  =  1     
+bt_search finished
+Search made 16 variable assignments and pruned 38 variable values
+Solution
+[3, 2, 1, 4]
+[1, 3, 4, 2]
+[4, 1, 2, 3]
+[2, 4, 3, 1]
+===========
