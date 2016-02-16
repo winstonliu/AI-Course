@@ -61,6 +61,36 @@ propagator == a function with the following template
             V.
 '''
 
+def DEBUG(x):
+    # print ("                                         <<|{}".format(x))
+    pass
+
+def nQueen_Print(csp):
+    # all_vars = csp.get_all_vars()
+    # for i,v in enumerate(all_vars):
+        # p = v.get_assigned_value()
+        # print ("                                         <<|", end='')
+        # for k,e in enumerate(v.curdom):
+            # print(" ",end='')
+            # if k+1 == p:
+                # print(i+1,end='')
+            # elif e:
+                # print(".",end='')
+            # else:
+                # print("*",end='')
+        # print()
+    pass
+
+def constraintCheck(constraint):
+    '''Returns True if all variables in constraint are valid'''
+    vals = []
+    scope_vars = constraint.get_scope()
+    for var in scope_vars:
+        vals.append(var.get_assigned_value())
+    if not constraint.check(vals):
+        return False
+    return True
+
 def prop_BT(csp, newVar=None):
     '''Do plain backtracking propagation. That is, do no
     propagation at all. Just check fully instantiated constraints'''
@@ -69,15 +99,12 @@ def prop_BT(csp, newVar=None):
         return True, []
     for c in csp.get_cons_with_var(newVar):
         if c.get_n_unasgn() == 0:
-            vals = []
-            scope_vars = c.get_scope()
-            for var in scope_vars:
-                vals.append(var.get_assigned_value())
-            if not c.check(vals):
+            if not constraintCheck(c):
                 return False, []
     return True, []
 
 def prop_FC(csp, newVar=None):
+    # TODO 
     '''Do forward checking.  That is, check constraints with only one
     uninstantiated variable, and prune appropriately.  (i.e., do not prune a
     value that has already been pruned; do not prune the same value twice.)
@@ -106,8 +133,27 @@ def prop_FC(csp, newVar=None):
         list is a set of variable/value pairs that are all of the values the
         propagator pruned.
     '''
+    if not newVar:
+        return True, []
 
-#IMPLEMENT
+    prune_list = []
+    for c in csp.get_cons_with_var(newVar):
+        if c.get_n_unasgn() == 1:
+            var_last = c.get_unasgn_vars()[0]
+            # FCCheck
+            var_cdom = var_last.cur_domain()
+            for d in var_cdom:
+                var_last.assign(d)
+                if not constraintCheck(c) and (var_last,d) not in prune_list:
+                    prune_list.append((var_last, d))
+                    var_last.prune_value(d)     # Prune from current domain
+                var_last.unassign()
+            
+            # Check for DWO
+            if var_last.cur_domain_size() == 0:
+                return False, prune_list 
+
+    return True, prune_list
 
 def prop_GAC(csp, newVar=None):
     '''Do GAC propagation, as described in lecture. See beginning of this file

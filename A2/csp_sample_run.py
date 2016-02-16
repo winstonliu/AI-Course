@@ -40,16 +40,16 @@ simpleCSP.add_constraint(c1)
 simpleCSP.add_constraint(c2)
 
 btracker = BT(simpleCSP)
-#btracker.trace_on()
+# btracker.trace_on()
 
-print("Plain Bactracking on simple CSP")
+print("Plain Backtracking on simple CSP")
 btracker.bt_search(prop_BT)
 print("=======================================================")
 print("Forward Checking on simple CSP")
 btracker.bt_search(prop_FC)
 print("=======================================================")
-print("GAC on simple CSP")
-btracker.bt_search(prop_GAC)
+# print("GAC on simple CSP")
+# btracker.bt_search(prop_GAC)
 
 #Now n-Queens example
 
@@ -98,14 +98,14 @@ def solve_nQueens(n, propType, trace=False):
     elif propType == 'GAC':
         solver.bt_search(prop_GAC)
         
-#trace = True
+# trace = True
 trace = False
-print("Plain Bactracking on 8-queens")
+# print("Plain Bactracking on 8-queens")
 solve_nQueens(8, 'BT', trace)
 print("=======================================================")
 print("Forward Checking 8-queens")
 solve_nQueens(8, 'FC', trace)
 print("=======================================================")
-print("GAC 8-queens")
-solve_nQueens(8, 'GAC', trace)
+# print("GAC 8-queens")
+# solve_nQueens(8, 'GAC', trace)
 
