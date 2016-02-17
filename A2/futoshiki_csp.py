@@ -79,6 +79,17 @@ def futoshiki_csp_model_1(initial_futoshiki_board):
     '''
 
 #IMPLEMENT
+    var_list = [] 
+    cons = []
+
+    for i,row in enumerate(initial_futoshiki_board):
+        var_row = []
+        for j,col in enumerate(row):
+            if j % 2 == 0:  # Variable
+                # TODO add variable
+            else:           # Inequality constraint
+                # TODO add constraint
+        var_list.append(var_row)
 
 ##############################
 

@@ -126,11 +126,14 @@ def prop_FC(csp, newVar=None):
         list is a set of variable/value pairs that are all of the values the
         propagator pruned.
     '''
-    if not newVar:
-        return True, []
+    c_list = []
+    if newVar:
+        c_list.extend(csp.get_cons_with_var(newVar))
+    else:
+        c_list.extend(csp.get_all_cons())
 
     prune_list = []
-    for c in csp.get_cons_with_var(newVar):
+    for c in c_list:
         if c.get_n_unasgn() == 1:
             var_last = c.get_unasgn_vars()[0]
             # FCCheck
