@@ -8,6 +8,13 @@ Construct and return Futoshiki CSP models.
 from cspbase import *
 import itertools
 
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+def DEBUG(x):
+    # pp.pprint ("                                         <<|{}".format(x))
+    pp.pprint (x)
+    pass
+
 def futoshiki_csp_model_1(initial_futoshiki_board):
     '''Return a CSP object representing a Futoshiki CSP problem along with an
     array of variables for the problem. That is return
@@ -78,18 +85,75 @@ def futoshiki_csp_model_1(initial_futoshiki_board):
     constraints whose scope includes two and only two variables).
     '''
 
-#IMPLEMENT
     var_list = [] 
     cons = []
+    # Get numerical length of the board
+    n = len(initial_futoshiki_board)
+    dom = [x+1 for x in range(n)]
+    proc_queue = []
 
+    # Grab variables and inequality constraints
     for i,row in enumerate(initial_futoshiki_board):
         var_row = []
-        for j,col in enumerate(row):
-            if j % 2 == 0:  # Variable
-                # TODO add variable
-            else:           # Inequality constraint
-                # TODO add constraint
+        for j,col in enumerate(row[::2]):   # Variables only
+            # Variable name is in format [y,x]
+            if col == 0:
+                var_row.append(Variable('V{},{}'.format(i,j), dom))
+            else:
+                var_row.append(Variable('V{},{}'.format(i,j), [col]))
         var_list.append(var_row)
+
+        # Inequality constraints 
+        for k,col in enumerate(row[1::2]):    # Ineqs only
+            if col == '.':
+                continue
+            
+            vc = var_list[i][k]     # Current variable
+            ve = var_list[i][k+1]   # Next variable
+
+            if col == '<':
+                con = Constraint('LEQ[{},{}]<[{},{}]'.format(i,k,i,k+1),[vc,ve])
+                sat_tuples = [t for t in itertools.product(vc.domain(),ve.domain()) if t[0]<t[1]] 
+            elif col == '>':
+                con = Constraint('GEQ[{},{}]>[{},{}]'.format(i,k,i,k+1),[vc,ve])
+                sat_tuples = [t for t in itertools.product(vc.domain(),ve.domain()) if t[0]>t[1]] 
+
+            con.add_satisfying_tuples(sat_tuples)
+            cons.append(con)
+
+    # Construct variable constraints
+    # Make constraints of form:  FH[i,j]:[i+1 to end,j         ]
+    # and ...                    FV[i,j]:[i         ,j+1 to end]
+    for nrow in range(n):
+        for ncol in range(n):
+            vc = var_list[nrow][ncol]      # Current var
+
+            # Horizontal elements
+            for elem in range(ncol+1,n):    
+                ve = var_list[nrow][elem]
+                con = Constraint('FH[{},{}]:[{},{}]'.format(nrow,ncol,nrow,elem),[vc,ve])
+
+                sat_tuples = [t for t in itertools.product(vc.domain(),ve.domain()) if not t[0]==t[1]] 
+                con.add_satisfying_tuples(sat_tuples)
+                cons.append(con)
+
+            # Vertical elements
+            for elem in range(nrow+1,n):
+                ve = var_list[elem][ncol]
+                con = Constraint('FV[{},{}]:[{},{}]'.format(nrow,ncol,elem,ncol),[vc,ve])
+
+                sat_tuples = [t for t in itertools.product(vc.domain(),ve.domain()) if not t[0]==t[1]] 
+                con.add_satisfying_tuples(sat_tuples)
+                cons.append(con)
+
+    # Flatten var_list and put into csp
+    csp = CSP('{}-futoshiki'.format(n), [v for s in var_list for v in s])
+
+    for c in cons:
+        csp.add_constraint(c)
+
+
+    return csp, var_list
 
 ##############################
 
@@ -132,5 +196,84 @@ def futoshiki_csp_model_2(initial_futoshiki_board):
     the number of inequality symbols found on the board.  
     '''
 
+    # want 2*n + j constraints
+
 #IMPLEMENT
+    var_list = [] 
+    cons = []
+    # Get numerical length of the board
+    n = len(initial_futoshiki_board)
+    dom = [x+1 for x in range(n)]
+    proc_queue = []
+
+    # Grab variables and inequality constraints
+    for i,row in enumerate(initial_futoshiki_board):
+        var_row = []
+        for j,col in enumerate(row[::2]):   # Variables only
+            # Variable name is in format [y,x]
+            if col == 0:
+                var_row.append(Variable('V{},{}'.format(i,j), dom))
+            else:
+                var_row.append(Variable('V{},{}'.format(i,j), [col]))
+        var_list.append(var_row)
+
+        # Inequality constraints 
+        for k,col in enumerate(row[1::2]):    # Ineqs only
+            if col == '.':
+                continue
+            
+            vc = var_list[i][k]     # Current variable
+            ve = var_list[i][k+1]   # Next variable
+
+            if col == '<':
+                con = Constraint('LEQ[{},{}]<[{},{}]'.format(i,k,i,k+1),[vc,ve])
+                sat_tuples = [t for t in itertools.product(vc.domain(),ve.domain()) if t[0]<t[1]] 
+            elif col == '>':
+                con = Constraint('GEQ[{},{}]>[{},{}]'.format(i,k,i,k+1),[vc,ve])
+                sat_tuples = [t for t in itertools.product(vc.domain(),ve.domain()) if t[0]>t[1]] 
+
+            con.add_satisfying_tuples(sat_tuples)
+            cons.append(con)
+
+    # Construct all-different variable constraints
+    # Make constraints of form:  FH[i    ,1:end]
+    for nrow in range(n):
+        con = Constraint('FH[{}]'.format(nrow),var_list[nrow])
+        sat_tuples = []
+        for t in itertools.permutations(dom, n):
+            in_doms = True
+            # Check to make sure all numbers in permutation are in domain
+            for col in range(n):
+                if t[col] not in var_list[nrow][col].domain():
+                    in_doms = False
+                    break;
+            if in_doms:
+                sat_tuples.append(t) 
+        con.add_satisfying_tuples(sat_tuples)
+        cons.append(con)
+
+    # and ...                    FV[1:end,j    ]
+    for ncol in range(n):
+        con = Constraint('FV[{}]'.format(ncol),[p[ncol] for p in var_list])
+        sat_tuples = []
+        for t in itertools.permutations(dom, n):
+            in_doms = True
+            # Check to make sure all numbers in permutation are in domain
+            for row in range(n):
+                if t[row] not in var_list[row][ncol].domain():
+                    in_doms = False
+                    break;
+            if in_doms:
+                sat_tuples.append(t) 
+        con.add_satisfying_tuples(sat_tuples)
+        cons.append(con)
+
+    # Flatten var_list and put into csp
+    csp = CSP('{}-futoshiki'.format(n), [v for s in var_list for v in s])
+
+    for c in cons:
+        csp.add_constraint(c)
+
+
+    return csp, var_list
 
