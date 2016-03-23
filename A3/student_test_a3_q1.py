@@ -557,6 +557,8 @@ if __name__ == '__main__':
     t4 = SummationTest(F6,Cancer,[['Tuberculosis or Lung Cancer','Tuberculosis',],[2.0, 1.0, 0, 1]], "Factor Sum Out Test 1")
     t5 = SummationTest(F9,V1,[['Distance','Temperature',],[0.4, 0.2, 0.05, 0.25]], "Factor Sum Out Test 2")
     t6 = SummationTest(F9,V2,[['Colour','Temperature',],[0.3, 0.25, 0.15000000000000002, 0.2]], "Factor Sum Out Test 3")
+    m1 = SummationTest(F17,V6,[[],[1]], "Custom: Constant Result")
+
 
 
     
@@ -1058,6 +1060,7 @@ if __name__ == '__main__':
     t4.test()
     t5.test()
     t6.test()
+    m1.test()
     t7.test()
     t8.test()
     t9.test()
