@@ -25,7 +25,7 @@ def multiply_factors(factors):
         scope_int = list(set(old_fac.get_scope()) & set(f.get_scope()))
         if not scope_int: continue
 
-        # Get new list of unique variables
+        # Get new list of unique variables in previous order
         tmp_list = list(collections.OrderedDict.fromkeys(old_fac.get_scope() + f.get_scope()))
         tmp_list_name = [k.name for k in tmp_list]
         tmp_fac = Factor("M", tmp_list) 
@@ -33,15 +33,24 @@ def multiply_factors(factors):
         # Get indicies of unique variables
         old_fac_idx = [i for i,s in enumerate(old_fac.get_scope()) if s.name in tmp_list_name]
         f_idx = [i for i,s in enumerate(f.get_scope()) if s.name in tmp_list_name]
-            
-        for a in tmp_fac.get_assignment_iterator():
-            old_fac_as = [a[i] for i in old_fac_idx]
-            old_val = old_fac.get_value(old_fac_as)
 
-            f_as = [a[i] for i in f_idx]
-            f_val = f.get_value(f_as)
+        for k in old_fac.get_assignment_iterator():        
+            for n in f.get_assignment_iterator():
+                # Check if the values are the same
+                if [k[i] for i in old_fac_idx] == [n[i] for i in f_idx]:
+                    tmp = list(collections.OrderedDict.fromkeys(k + n))
+                    old_val = old_fac.get_value(k)
+                    f_val = f.get_value(n)
+                    tmp_fac.add_value_at_assignment(old_val*f_val, tmp)
+                    
+#       for a in tmp_fac.get_assignment_iterator():
+#           old_fac_as = [a[i] for i in old_fac_idx]
+#           old_val = old_fac.get_value(old_fac_as)
 
-            tmp_fac.add_value_at_assignment(old_val*f_val, a)
+#           f_as = [a[i] for i in f_idx]
+#           f_val = f.get_value(f_as)
+
+#           tmp_fac.add_value_at_assignment(old_val*f_val, a)
 
         old_fac = tmp_fac
     
@@ -65,23 +74,18 @@ def restrict_factor(factor, variable, value):
     if not variable in factor.get_scope(): return None 
 
     var_idx = factor.get_scope().index(variable) # find idx of variable
-    ret_val = []
+    ret_list = [s for s in factor.get_scope() if s.name != variable.name]
+
+    # Initialize returned factor
+    ret_fac = Factor("R-"+variable.name+"-"+factor.name, ret_list)
 
     # Iterate through all factors, allocate those that correspond to value
     for c in factor.get_assignment_iterator():
         if c[var_idx] == value:
             tmp = list(c)
             del tmp[var_idx]
-            tmp.append(factor.get_value(c))
-            ret_val.append(tmp)
-
-    ret_list = [s for s in factor.get_scope() if s.name != variable.name]
-
-    # Initialize returned factor
-    ret_fac = Factor("R-"+variable.name+"-"+factor.name, ret_list)
-    ret_fac.add_values(ret_val)
+            ret_fac.add_value_at_assignment(factor.get_value(c), tmp)
     
-    ret_fac.print_table() 
     return ret_fac
 
     
@@ -95,24 +99,24 @@ Return:
               A new factor that is "factor" summed out over "variable"
 '''
 def sum_out_variable(factor, variable):
+    if not variable in factor.get_scope(): return None 
+
     var_idx = factor.get_scope().index(variable) # find idx of variable
     ret_list = [s for s in factor.get_scope() if s.name != variable.name]
 
     # Initialize returned factor
-    ret_fac = Factor("S-"+variable.name+"-"+factor.name, ret_list)
+    ret_fac = Factor("R-"+variable.name+"-"+factor.name, ret_list)
 
-    for combo in ret_fac.get_assignment_iterator():
-        my_sum = 0
-        old_combo = list(combo)
-        old_combo.insert(var_idx, 0) # 0 is just placeholder
-        for v in variable.domain():
-            old_combo[var_idx] = v
-            my_sum += factor.get_value(old_combo)
-        
-        # Add sum out value
-        ret_fac.add_value_at_assignment(my_sum, combo)
-
+    # Iterate through all factors, allocate those that correspond to value
+    for c in factor.get_assignment_iterator():
+        tmp = list(c)
+        del tmp[var_idx]
+        # Sum with existing value
+        last_val = ret_fac.get_value(tmp)
+        ret_fac.add_value_at_assignment(factor.get_value(c)+last_val, tmp)
+    
     return ret_fac
+
 
 '''
 VariableElimination(net, queryVar, evidenceVars)
