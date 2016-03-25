@@ -47,22 +47,28 @@ def multiply_factors(factors):
             of_int = [old_fac.get_scope().index(i) for i in scope_int]
             f_int = [f.get_scope().index(i) for i in scope_int]
 
+
             for k in old_fac.get_assignment_iterator():        
                 # Make truncated list
                 trunc_list = [n for n in f.get_scope() if not n in scope_int] 
                 old_val = old_fac.get_value(k)
 
                 if not trunc_list:
-                   sub_list = []  
-                   for j,u in enumerate(f_int):
-                       sub_list.insert(u, k[j])
+                    sub_list = []  
+                    for u in f_int:
+                        k_idx = old_fac.get_scope().index(f.get_scope()[u])
+                        sub_list.insert(u, k[k_idx])
+
+                    f_val = f.get_value(sub_list)
+                    tmp_fac.add_value_at_assignment(old_val*f_val, list(k))
                 else:
                     test_fac = Factor("do not use", trunc_list)
 
                     for n in test_fac.get_assignment_iterator():
                         sub_list = list(n)
-                        for j,u in enumerate(f_int):
-                            sub_list.insert(u, k[j])
+                        for u in f_int:
+                            k_idx = old_fac.get_scope().index(f.get_scope()[u])
+                            sub_list.insert(u, k[k_idx])
                         
                         f_val = f.get_value(sub_list)
                         tmp = list(k) + n
@@ -186,4 +192,5 @@ def VariableElimination(net, queryVar, evidenceVars):
     # Remaining factors in mod_factors should now only contain queryVar
     mult_fac = multiply_factors(mod_factors)
     norm = 1/(sum(mult_fac.values))
-    return [i*norm for i in mult_fac.values]
+    ans = [i*norm for i in mult_fac.values]
+    return ans

@@ -580,7 +580,7 @@ if __name__ == '__main__':
     t12 = VETest(Asia,[[VisitAsia,'visit'], [TBorCA,'true'], [Xray,'abnormal']],Cancer,[[0.5378973105134475, 0.4621026894865526]], "Variable Elimination Test 2")
     t13 = VETest(AlarmNet,[[John, True], [Mary, False]],Earthquake,[[0.0045386400007529125, 0.9954613599992471]], "Variable Elimination Test 3")
     
-
+    m3 = VETest(AlarmNet2,[[John, True], [Mary, False]],Earthquake,[[0.0045386400007529125, 0.9954613599992471]], "Variable Elimination Test 3")
 
 
     
@@ -1053,35 +1053,36 @@ if __name__ == '__main__':
 
     
 
-    t1.test()
-    t2.test()
-    t3.test()
+#   t1.test()
+#   t2.test()
+#   t3.test()
 
-    t14.test()
+#   t14.test()
 
-    t4.test()
-    t5.test()
-    t6.test()
-    m1.test()
+#   t4.test()
+#   t5.test()
+#   t6.test()
+#   m1.test()
 
-    t7.test()
-    t8.test()
-    t9.test()
-    m2.test()
-    
-    t10.test()
-    t11.test()
-    t12.test()
-    t13.test()
+#   t7.test()
+#   t8.test()
+#   t9.test()
+#   m2.test()
+#   
+#   t10.test()
+#   t11.test()
+#   t12.test()
+#   t13.test()
+    m3.test()
     
 
     #The following tests are on larger, randomly generated bayes nets
     #Try these only after having passed the above tests
     
-    AG_t1.test()
-    AG2_test.test()
+#   AG_t1.test()
+#   AG2_test.test()
 
-    start_time = time.time()
-    AG3_test.test()
-    print("Elapsed: {}".format(time.time()-start_time))
+#   start_time = time.time()
+#   AG3_test.test()
+#   print("Elapsed: {}".format(time.time()-start_time))
     
