@@ -20,40 +20,55 @@ def multiply_factors(factors):
     old_fac = factors[0]
     for i,f in enumerate(factors):
         if i == 0: continue 
-         
-        # Scope intersection
-        scope_int = list(set(old_fac.get_scope()) & set(f.get_scope()))
-        if not scope_int: continue
 
-        # Get new list of unique variables in previous order
+        # Get new list of unique variables in ORDERED order
         tmp_list = list(collections.OrderedDict.fromkeys(old_fac.get_scope() + f.get_scope()))
-        tmp_list_name = [k.name for k in tmp_list]
         tmp_fac = Factor("M", tmp_list) 
 
-        # Get indicies of unique variables
-        old_fac_idx = [i for i,s in enumerate(old_fac.get_scope()) if s.name in tmp_list_name]
-        f_idx = [i for i,s in enumerate(f.get_scope()) if s.name in tmp_list_name]
+        # Scope intersection
+        scope_int = [k for k in old_fac.get_scope() if k in f.get_scope()]
 
-        for k in old_fac.get_assignment_iterator():        
-            for n in f.get_assignment_iterator():
-                # Check if the values are the same
-                if [k[i] for i in old_fac_idx] == [n[i] for i in f_idx]:
-                    tmp = list(collections.OrderedDict.fromkeys(k + n))
-                    old_val = old_fac.get_value(k)
-                    f_val = f.get_value(n)
-                    tmp_fac.add_value_at_assignment(old_val*f_val, tmp)
-                    
-#       for a in tmp_fac.get_assignment_iterator():
-#           old_fac_as = [a[i] for i in old_fac_idx]
-#           old_val = old_fac.get_value(old_fac_as)
+        # Deal with constant case
+        if not scope_int:
+            if not old_fac.get_scope() and not f.get_scope():
+                tmp_fac.add_value_at_assignment(old_fac.values[0]*f.values[0], [])
+            elif not old_fac.get_scope():
+                for n in f.get_assignment_iterator():
+                    new_val = f.get_value(n)
+                    tmp_fac.add_value_at_assignment(old_fac.values[0]*new_val, n)
+            elif not f.get_scope():
+                for n in old_fac.get_assignment_iterator():
+                    new_val = old_fac.get_value(n)
+                    tmp_fac.add_value_at_assignment(f.values[0]*new_val, n)
+            else:
+                continue
+        else:
+            # Get indicies of intersecting variables
+            of_int = [old_fac.get_scope().index(i) for i in scope_int]
+            f_int = [f.get_scope().index(i) for i in scope_int]
 
-#           f_as = [a[i] for i in f_idx]
-#           f_val = f.get_value(f_as)
+            for k in old_fac.get_assignment_iterator():        
+                # Make truncated list
+                trunc_list = [n for n in f.get_scope() if not n in scope_int] 
+                old_val = old_fac.get_value(k)
 
-#           tmp_fac.add_value_at_assignment(old_val*f_val, a)
+                if not trunc_list:
+                   sub_list = []  
+                   for j,u in enumerate(f_int):
+                       sub_list.insert(u, k[j])
+                else:
+                    test_fac = Factor("do not use", trunc_list)
 
+                    for n in test_fac.get_assignment_iterator():
+                        sub_list = list(n)
+                        for j,u in enumerate(f_int):
+                            sub_list.insert(u, k[j])
+                        
+                        f_val = f.get_value(sub_list)
+                        tmp = list(k) + n
+                        tmp_fac.add_value_at_assignment(old_val*f_val, tmp)
+                        
         old_fac = tmp_fac
-    
     return old_fac
 
 '''
@@ -105,7 +120,7 @@ def sum_out_variable(factor, variable):
     ret_list = [s for s in factor.get_scope() if s.name != variable.name]
 
     # Initialize returned factor
-    ret_fac = Factor("R-"+variable.name+"-"+factor.name, ret_list)
+    ret_fac = Factor("S-"+variable.name+"-"+factor.name, ret_list)
 
     # Iterate through all factors, allocate those that correspond to value
     for c in factor.get_assignment_iterator():
@@ -148,7 +163,6 @@ VariableElimination(net, queryVar, evidenceVars)
                                Pr(A='c'|B=1, C='c') = 0.26
 '''       
 def VariableElimination(net, queryVar, evidenceVars):
-    # XXX TODO
     order = min_fill_ordering(net.factors(), queryVar)
     mod_factors = net.factors()
 
@@ -162,6 +176,7 @@ def VariableElimination(net, queryVar, evidenceVars):
     for r in order:
         # Find factors that contain r
         elim_list = [s for s in mod_factors if r in s.get_scope()]
+        if not elim_list: continue
         new_fac = sum_out_variable(multiply_factors(elim_list), r)
 
         # Remove elim_list from mod_factors
@@ -170,5 +185,5 @@ def VariableElimination(net, queryVar, evidenceVars):
 
     # Remaining factors in mod_factors should now only contain queryVar
     mult_fac = multiply_factors(mod_factors)
-    norm = 1/(sum(mult_fac))
-    return [i*norm for i in mult_fac]
+    norm = 1/(sum(mult_fac.values))
+    return [i*norm for i in mult_fac.values]
