@@ -169,7 +169,6 @@ VariableElimination(net, queryVar, evidenceVars)
                                Pr(A='c'|B=1, C='c') = 0.26
 '''       
 def VariableElimination(net, queryVar, evidenceVars):
-    order = min_fill_ordering(net.factors(), queryVar)
     mod_factors = net.factors()
 
     # Replace factors with evidence
@@ -179,6 +178,7 @@ def VariableElimination(net, queryVar, evidenceVars):
                 mod_factors[i] = restrict_factor(f,e,e.get_evidence())
     
     # Eliminate
+    order = min_fill_ordering(net.factors(), queryVar)
     for r in order:
         # Find factors that contain r
         elim_list = [s for s in mod_factors if r in s.get_scope()]

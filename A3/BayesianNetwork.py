@@ -216,7 +216,7 @@ class Factor:
         C.domain() = ['heavy', 'light']
 
         then we call 
-        add_value_at_current_assignment(0.33,[1,'a','heavy'])
+        add_value_at_assignment(0.33,[1,'a','heavy'])
          with the value 0.33, we would have initialized this factor to have
         the value 0.33 on the assigments (A=1, B='1', C='heavy')
         This has the same effect as the call
